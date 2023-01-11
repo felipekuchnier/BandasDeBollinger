@@ -1,6 +1,9 @@
 from datetime import date
 
 from openpyxl import Workbook
+from openpyxl.chart import LineChart, Reference
+from openpyxl.drawing.image import Image
+from openpyxl.styles import Font, PatternFill, Alignment
 
 # acao = input("Qual o código da Ação que você quer processar? ").upper()
 acao = "BIDI4"
@@ -34,5 +37,48 @@ for linha in linhas:
     planilha_ativa[f'D{indice}'] = f'=AVERAGE(B{indice}:B{indice + 19}) + 2*STDEV(B{indice}:B{indice + 19})'
 
     indice += 1
+
+planilha_grafico = workbook.create_sheet("Gráfico")
+workbook.active = planilha_grafico
+
+# Mesclagem de células para criação do cabeçalho do Gráfico
+planilha_grafico.merge_cells("A1:T2")
+cabecalho = planilha_grafico['A1']
+cabecalho.font = Font(b=True, sz=18, color="FFFFFF")
+cabecalho.fill = PatternFill("solid", fgColor="07838F")
+cabecalho.alignment = Alignment(vertical="center", horizontal="center")
+cabecalho.value = "Histórico de Cotações"
+
+# Gráfico
+grafico = LineChart()
+grafico.width = 33.87
+grafico.height = 14.82
+grafico.title = f"Cotações - {acao}"
+grafico.x_axis.title = "Data da Cotação"
+grafico.y_axis.title = "Preço da Cotação"
+
+referencia_cotacoes = Reference(planilha_ativa, min_col=2, min_row=2, max_col=4, max_row=indice)
+referencia_datas = Reference(planilha_ativa, min_col=1, min_row=2, max_col=1, max_row=indice)
+grafico.add_data(referencia_cotacoes)
+grafico.set_categories(referencia_datas)
+
+linha_cotacoes = grafico.series[0]
+linha_bb_inferior = grafico.series[1]
+linha_bb_superior = grafico.series[2]
+
+linha_cotacoes.graphicalProperties.line.width = 0
+linha_cotacoes.graphicalProperties.line.solidFill = '0a55ab'
+
+linha_bb_inferior.graphicalProperties.line.width = 0
+linha_bb_inferior.graphicalProperties.line.solidFill = 'a61508'
+
+linha_bb_superior.graphicalProperties.line.width = 0
+linha_bb_superior.graphicalProperties.line.solidFill = '12a154'
+
+planilha_grafico.add_chart(grafico, "A3")
+
+imagem = Image('./recursos/logo.png')
+planilha_grafico.merge_cells("I32:L35")
+planilha_grafico.add_image(imagem, 'I32')
 
 workbook.save("./saida/Planilha.xlsx")
